@@ -4,10 +4,14 @@
  * course: CMPT 435
  * assignment: lab 2a
  * due date: January 30, 2022
- * version: 1.0
+ * version: 1.1
  *
  * This file contains the class Driver_lab2a.
  */
+
+ import java.io.File;
+ import java.io.FileNotFoundException;
+ import java.util.Scanner;
 
 /**
  * Driver_lab2a
@@ -20,7 +24,19 @@
 public class Driver_lab2a{
 
   public static void main(String[] args) {
-    System.out.println(euclidAlg(148, 75));
+    try {
+      File input = new File("D:/input.10.in");
+      Scanner sc = new Scanner(input);
+      while (sc.hasNextLine()){
+        long a = sc.nextLong();
+        long b = sc.nextLong();
+        long gcd = euclidAlg(a, b);
+        System.out.println(gcd);
+      }
+    }
+    catch (FileNotFoundException ex) {
+      System.out.println("File not found");
+    }
   }
 
 /**

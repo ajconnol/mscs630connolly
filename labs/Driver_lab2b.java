@@ -4,11 +4,14 @@
  * course: CMPT 435
  * assignment: lab 2b
  * due date: January 30, 2022
- * version: 1.0
+ * version: 1.1
  *
- * This file contains the class Driver_lab2a.
+ * This file contains the class Driver_lab2b.
  */
 
+ import java.io.File;
+ import java.io.FileNotFoundException;
+ import java.util.Scanner;
 
 /**
  * Driver_lab2b
@@ -22,8 +25,19 @@
 public class Driver_lab2b{
 
   public static void main(String[] args) {
-    long[] num_array = euclidAlgExt (240, 46);
-    System.out.println(num_array[0] + " " + num_array[1] + " " + num_array[2]);
+    try {
+      File input = new File("D:/input.10.in");
+      Scanner sc = new Scanner(input);
+      while (sc.hasNextLine()){
+        long a = sc.nextLong();
+        long b = sc.nextLong();
+        long[] ans = euclidAlgExt(a, b);
+        System.out.println(ans[0] + " " + ans[1] + " " + ans[2]);
+      }
+    }
+    catch (FileNotFoundException ex) {
+      System.out.println("File not found");
+    }
   }
 
 /**
