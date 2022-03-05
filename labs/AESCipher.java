@@ -1,10 +1,9 @@
 /**
  * file: AESCipher.java
  * author: Anthony Connolly
- * course: CMPT 435
- * assignment: lab 4
+ * assignment: lab 5
  * due date: February 20, 2022
- * version: 1.0
+ * version: 2.0
  *
  * This file contains the class AESCipher.
  */
@@ -13,6 +12,8 @@
  * AESCipher
  * This class contains the constants and functions to create a list of 10 other
  * keys generated from a given key using the AES Cipher.
+ *
+ * This class also contains the functions nescessary to complete the AES cypher.
  */
 
 public class AESCipher {
@@ -57,6 +58,14 @@ public class AESCipher {
     0x61, 0xc2, 0x9f, 0x25, 0x4a, 0x94, 0x33, 0x66, 0xcc, 0x83, 0x1d, 0x3a, 0x74, 0xe8, 0xcb, 0x8d
   };
 
+  static int[][] multMat = {
+    {2, 3, 1, 1},
+    {1, 2, 3, 1},
+    {1, 1, 2, 3},
+    {3, 1, 1, 2}
+  };
+
+
 
 /**
  * aesRoundKeys
@@ -71,6 +80,7 @@ public class AESCipher {
  *
  * Return keys: a list of 11 32 bit round keys
  */
+
 
   static String[] aesRoundKeys(String KeyHex){
     //Declare w.
@@ -167,5 +177,227 @@ public class AESCipher {
 
     return rcon[round];
 
+  }
+
+  /**
+   * AESStateXOR
+   *
+   * This function takes two matricies and adds them by xoring them at each
+   * index.
+   *
+   * Parameters:
+   *   sHex: matrix in hex
+   *   keyHex: key matrix in hex
+   * Return result: resultant matrix of the xors
+   */
+
+  static int[][] AESStateXOR(int[][] sHex, int[][] keyHex){
+    int[][] result = new int[4][4];
+    for(int i = 0; i < 4; i++){
+      for(int j = 0; j < 4; j++){
+        result[i][j] = sHex[i][j] ^ keyHex[i][j];
+      }
+    }
+    return result;
+  }
+
+  /**
+   * AESNibbleSub
+   *
+   * This function takes a matrix and uses the SBOX to perform Nibble
+   * substitions.
+   *
+   * Parameters:
+   *   inStateHex: cypherText matrix
+   *
+   * Return result: converted matrix.
+   */
+
+  static int[][] AESNibbleSub(int[][] inStateHex){
+    int[][] result = new int[4][4];
+    for(int i = 0; i < 4; i++){
+      for(int j = 0; j < 4; j++){
+        result[j][i] = aesSBOX(inStateHex[j][i]);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * AESShiftRow
+   *
+   * This function takes a matrix and shifts each row according to the AES
+   * algorithm.
+   *
+   * Parameters:
+   *   inStateHex: cypherText matrix
+   *
+   * Return result: shifted converted matrix.
+   */
+
+  static int[][] AESShiftRow(int[][] inStateHex){
+    // Shift row 1.
+    int[][] result = new int[4][4];
+    result[0] = inStateHex[0];
+    // Shift row 2.
+    for (int i = 0; i < 3; i++)
+      result[1][i] = inStateHex[1][i+1];
+    result[1][3] = inStateHex[1][0];
+    // Shift row 3.
+    for (int i = 0; i < 2; i++)
+      result[2][i] = inStateHex[2][i + 2];
+    for (int i = 2; i < 4; i++)
+      result[2][i] = inStateHex[2][i - 2];
+    //Shift row 4.
+    result[3][0] = inStateHex[3][3];
+    for(int i = 1; i < 4; i++)
+      result[3][i] = inStateHex[3][i - 1];
+
+    return result;
+  }
+
+  /**
+   * AESMixColumn
+   *
+   * This function takes a matrix and completes the AES Mix columns step using
+   * multiplaction over Gallois fields.
+   *
+   * Parameters:
+   *   inStateHex: cypherText matrix
+   *
+   * Return result: mixed matrix.
+   */
+
+  static int[][] AESMixColumn(int[][] inStateHex){
+    int[][] result = new int[4][4];
+    int temp = 0;
+    for(int col = 0; col < 4; col++){
+      for(int row = 0; row < 4; row++){
+        result[row][col] = 0;
+        for(int it = 0; it < 4; it++){
+          temp = 0;
+          //2
+          if(multMat[row][it] == 2){
+            temp = inStateHex[it][col] << 1;
+            if(temp >= 256)
+              temp -= 256;
+            if ((inStateHex[it][col] & 0x80) != 0)
+              temp ^= 0x1b;
+          }
+          //3
+          else if(multMat[row][it] == 3){
+            temp = inStateHex[it][col] << 1;
+            if(temp >= 256)
+              temp -= 256;
+            if ((inStateHex[it][col] & 0x80) != 0)
+              temp ^= 0x1b;
+            temp ^= inStateHex[it][col];
+          }
+          //1
+          else
+            temp = inStateHex[it][col];
+          result[row][col] ^= temp;
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
+   * AES
+   *
+   * This function uses helper functions to convert a plaintext string into
+   * cyphertext using the AES algorithm.
+   *
+   * Parameters:
+   *   pTextHex: plaintext String
+   *   keyHex: round 0 key
+   *
+   * Return cypherText: AES encoded string
+   */
+
+  static String AES(String pTextHex, String keyHex){
+
+    //Do Key Expansion
+    String [] roundKeys = aesRoundKeys(keyHex);
+
+    //Load base key into matrix
+    int[][] keyHexMat = new int[4][4];
+    int keyhexIndex = 0;
+    for(int j = 0; j < 4; j++){
+      for(int i = 0; i < 4; i++){
+        String hexTemp = keyHex.substring(keyhexIndex, keyhexIndex + 2);
+        keyHexMat[i][j] = Integer.parseInt(hexTemp, 16);
+        keyhexIndex += 2;
+      }
+    }
+
+    //Load plain text into matrix.
+    int [][] pTextMat = new int[4][4];
+    int index = 0;
+    for(int j = 0; j < 4; j++){
+      for(int i = 0; i < 4; i++){
+        String pTextTemp = pTextHex.substring(index, index + 2);
+        pTextMat[i][j] = Integer.parseInt(pTextTemp, 16);
+        index +=2;
+      }
+    }
+
+    //Add round 0 key.
+    int[][] res = AESStateXOR(pTextMat, keyHexMat);
+
+    //Perform rounds 1 - 9.
+    for (int round = 1; round < 10; round++){
+      //Load round key.
+      keyhexIndex = 0;
+      for(int j = 0; j < 4; j++){
+        for(int i = 0; i < 4; i++){
+          String hexTemp = roundKeys[round].substring(keyhexIndex, keyhexIndex + 2);
+          keyHexMat[i][j] = Integer.parseInt(hexTemp, 16);
+          keyhexIndex += 2;
+        }
+      }
+
+      //Do nibble sub.
+      res = AESNibbleSub(res);
+      //Do shift rows.
+      res = AESShiftRow(res);
+      //Do mix columns.
+      res = AESMixColumn(res);
+      //Add key.
+      res = AESStateXOR(res, keyHexMat);
+    }
+    //Do round 10.
+
+    //Do nibble sub.
+    res = AESNibbleSub(res);
+
+    //Do shift rows.
+    res = AESShiftRow(res);
+
+    //Add key.
+    keyhexIndex = 0;
+    for(int j = 0; j < 4; j++){
+      for(int i = 0; i < 4; i++){
+        String hexTemp = roundKeys[10].substring(keyhexIndex, keyhexIndex + 2);
+        keyHexMat[i][j] = Integer.parseInt(hexTemp, 16);
+        keyhexIndex += 2;
+      }
+    }
+    res = AESStateXOR(res, keyHexMat);
+
+    //Convert matrix to String.
+    String cypherText = "";
+    String segment = "";
+    for(int col = 0; col < 4; col++){
+      for(int row = 0; row < 4; row++){
+        segment = Integer.toHexString(res[row][col]);
+        if (segment.length() < 2)
+          segment = "0" + segment;
+        cypherText = cypherText + segment;
+      }
+    }
+
+    return cypherText.toUpperCase();
   }
 }
