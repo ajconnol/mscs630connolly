@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Button, View, Text, TextInput, StyleSheet  } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import CryptoES from "crypto-es";
 function BetScreen({ navigation }) {
 
     const invsbox = [0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,//0
@@ -103,12 +104,16 @@ function BetScreen({ navigation }) {
       return result;
     }
   
-  
     onSubmit = async () => {
       try {
         let bet = await AsyncStorage.getItem('bet');
-        let parsed = JSON.parse(bet);    
-        alert("ML: " + parsed.t + "     Wager: $" + parsed.wager)
+        let parsed = JSON.parse(bet);
+        const decrypted = CryptoES.AES.decrypt(parsed, "4B6250655368566D597133743677397A");
+        alert(decrypted)
+        const w = decrypted.replace(/[A-Za-z]/g, "")
+        const t = decrypted.replace(/\d/g, "")     
+        
+        alert("ML: " + t + "     Wager: $" + w)
       }catch (error) {
         console.log(err)
       }

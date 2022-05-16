@@ -11,7 +11,8 @@ function LoginScreen({ navigation }) {
     onSubmit = async () => {
       try {
         let user = await AsyncStorage.getItem('user');
-        let parsed = JSON.parse(user);   
+        let parsed = JSON.parse(user); 
+        alert(CryptoES.SHA1(password + parsed.salt))  
         if (parsed.uname == username && parsed.pword == String(CryptoES.SHA1(password + parsed.salt))){
           navigation.push('Home')
         }
